@@ -126,7 +126,7 @@ st.markdown("---")
 
 st.header(" About You")
 
-age = st.slider("Your age", 15, 80, 25)
+age = st.number_input("Your age", min_value=15, max_value=90, value=None, placeholder="Type your age")
 
 family_history = st.checkbox("Someone in your family had breast cancer")
 previous_lumps = st.checkbox("You had a breast lump before")
@@ -164,12 +164,16 @@ hormonal_contraception = st.checkbox("Using family planning pills/injection")
 region = st.selectbox(
     "Where do you live?",
     ["Kigali City", "Northern Province", "Southern Province",
-     "Eastern Province", "Western Province", "Other"]
+     "Eastern Province", "Western Province", "Other"],
+    index=None,
+    placeholder="Select region..."
 )
 
 language = st.selectbox(
     "Preferred language",
-    ["English", "Kinyarwanda", "French", "Swahili", "Other"]
+    ["English", "Kinyarwanda", "French", "Swahili", "Other"],
+    index=None,
+    placeholder="Select language..."
 )
 
 st.markdown("---")
@@ -190,33 +194,56 @@ input_data = {
 }
 
 if st.button("🔍 Check My Risk"):
-    with st.spinner("Checking... please wait"):
-        result = predict.predict_risk(input_data)
-
-    if "error" in result:
-        st.error(result["error"])
+    # Input Validation
+    missing_info = []
+    
+    if age is None:
+        missing_info.append("Please enter your age.")
+        
+    if region is None:
+        missing_info.append("Please select a region.")
+        
+    if language is None:
+        missing_info.append("Please select a language.")
+    
+    if symptoms_exist and not (breast_pain or nipple_discharge or skin_dimples or not np.isnan(lump_size_mm)):
+        missing_info.append("You checked 'Do you feel anything unusual' but didn't select any symptoms below it.")
+        
+    if missing_info:
+        for warning in missing_info:
+            st.warning(f"⚠️ {warning}")
     else:
-        st.markdown("---")
-        st.header(" Your Result")
+        with st.spinner("Checking... please wait"):
+            result = predict.predict_risk(input_data)
 
-        risk_band = result['risk_band']
-
-        if "Green" in risk_band:
-            st.success(" Low Risk – Keep checking yourself monthly.")
-        elif "Yellow" in risk_band:
-            st.warning(" Medium Risk – Please visit a clinic soon.")
+        if "error" in result:
+            st.error(result["error"])
         else:
-            st.error(" High Risk – Please go to a hospital immediately.")
+            st.markdown("---")
+            st.header(" Your Result")
 
-        st.markdown("### Chance of High Risk")
-        st.progress(float(result['probabilities']['Red']))
+            risk_band = result['risk_band']
 
-        st.markdown("---")
-        st.header(" What You Should Do")
+            if "Green" in risk_band:
+                st.success(" Low Risk – Keep checking yourself monthly.")
+            elif "Yellow" in risk_band:
+                st.warning(" Medium Risk – Please visit a clinic soon.")
+            else:
+                st.error(" High Risk – Please go to a hospital immediately.")
 
-        recs = predict.get_recommendations(result['risk_level'])
-        for rec in recs:
-            st.write("•", rec)
+            st.markdown("### Chance of High Risk")
+            st.progress(float(result['probabilities']['Red']))
+
+            st.markdown("### Top Factors Influencing Risk")
+            for reason in result.get('top_reasons', []):
+                st.write(f"- {reason}")
+
+            st.markdown("---")
+            st.header(" What You Should Do")
+
+            recs = predict.get_recommendations(result['risk_level'])
+            for rec in recs:
+                st.write("•", rec)
 
 st.markdown("---")
 st.caption("""

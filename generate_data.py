@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 
-def generate_synthetic_data(num_samples=5000):
+def generate_synthetic_data(num_samples=50000):
     """
     Generates a synthetic dataset for breast cancer risk triage.
     """
